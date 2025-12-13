@@ -232,8 +232,7 @@ The mise configuration includes a postinstall hook that automatically runs `hatc
 2. **uv or hatch not found**: Run `mise install` to install all specified tools
 3. **invoke not found**: Run `mise install` to trigger the postinstall hook, or manually run `hatch env create`
 4. **Hatch environment not created**: Run `mise install` (triggers postinstall hook) or manually run `hatch env create`
-5. **Pre-commit hooks not installed**: Run `pre-commit install` or `invoke setup-dev`
-6. **Tests failing**: Make sure all dependencies are installed with `invoke setup-dev`
+5. **Tests failing**: Make sure all dependencies are installed with `invoke setup-dev`
 
 ### Getting Help
 

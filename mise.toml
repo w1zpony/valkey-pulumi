@@ -1,9 +1,12 @@
 [tools]
+lefthook = "2.0"
+pre-commit = "4.5"
+biome = "2.3"
 python = "3.14"
 uv = "0.9"
 "pipx:hatch" = "1.16"
 
 [hooks]
-postinstall = "hatch env create"
+postinstall = "lefthook install && hatch env create"
 cd = "hatch shell"
 leave = "exit"

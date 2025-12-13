@@ -138,10 +138,10 @@ The `.venv` directory is typically automatically discovered by IDEs such as VS C
 This package uses [pre-commit][] to enforce consistent code-styles.
 On every commit, pre-commit checks will either automatically fix issues with the code, or raise an error message.
 
-To enable pre-commit locally, simply run
+To enable Git hooks locally, simply run
 
 ```bash
-pre-commit install
+lefthook install
 ```
 
 in the root of the repository.

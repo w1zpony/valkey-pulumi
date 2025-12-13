@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/daotl/cookiecutter-python",
-  "commit": "732f0cf19b3b2d3627b52f2ad382b1157581e828",
+  "commit": "9bd3b881cc4ef5c2a9c6fb51e8810d0595f6e972",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -36,9 +36,43 @@
         "trim_blocks": true
       },
       "_template": "https://github.com/daotl/cookiecutter-python",
-      "_commit": "732f0cf19b3b2d3627b52f2ad382b1157581e828"
+      "_commit": "9bd3b881cc4ef5c2a9c6fb51e8810d0595f6e972"
     }
   },
   "directory": null,
-  "skip": [".git/"]
+  "skip": [
+    ".git/",
+    "tests",
+    "src/**/__init__.py",
+    "src/**/basic.py",
+    "docs/api.md",
+    "docs/changelog.md",
+    "docs/references.bib",
+    "docs/references.md",
+    "docs/notebooks/example.ipynb",
+    "tests",
+    "src/**/__init__.py",
+    "src/**/basic.py",
+    "docs/api.md",
+    "docs/changelog.md",
+    "docs/references.bib",
+    "docs/references.md",
+    "docs/notebooks/example.ipynb",
+    "tests",
+    "src/**/__init__.py",
+    "src/**/basic.py",
+    "docs/api.md",
+    "docs/changelog.md",
+    "docs/references.bib",
+    "docs/references.md",
+    "docs/notebooks/example.ipynb",
+    "tests",
+    "src/**/__init__.py",
+    "src/**/basic.py",
+    "docs/api.md",
+    "docs/changelog.md",
+    "docs/references.bib",
+    "docs/references.md",
+    "docs/notebooks/example.ipynb"
+  ]
 }
