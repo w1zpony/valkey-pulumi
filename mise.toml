@@ -1,0 +1,9 @@
+[tools]
+python = "3.14"
+uv = "0.9"
+"pipx:hatch" = "1.16"
+
+[hooks]
+postinstall = "hatch env create"
+cd = "hatch shell"
+leave = "exit"
