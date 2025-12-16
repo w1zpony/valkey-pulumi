@@ -1,7 +1,8 @@
-from importlib.metadata import version
+"""Pulumi Valkey deployment provider."""
 
-from . import example
+from .__main__ import ValkeyReplicaSet, ValkeyStandalone, create_standalone_valkey, create_valkey_replica_set
+from .config import Config
 
-__all__ = ["example"]
+__version__ = "0.0.1"
 
-__version__ = version("valkey-pulumi")
+__all__ = ["Config", "ValkeyStandalone", "ValkeyReplicaSet", "create_standalone_valkey", "create_valkey_replica_set"]

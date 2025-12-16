@@ -1,40 +1,132 @@
-import pytest
+import os
+import sys
+from pathlib import Path
 
 import valkey_pulumi
+from valkey_pulumi.__main__ import _build_env
+from valkey_pulumi.config import DEFAULT_VALKEY_CONFIG, Config
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+try:
+    import pulumi  # type: ignore
+    import pulumi_docker  # type: ignore
+except ImportError:  # pragma: no cover - test shim
+    import types
+
+    pulumi = types.ModuleType("pulumi")
+
+    class _Config:
+        def get(self, *_args, **_kwargs):
+            return None
+
+        def get_bool(self, *_args, **_kwargs):
+            return None
+
+        def get_int(self, *_args, **_kwargs):
+            return None
+
+        def get_object(self, *_args, **_kwargs):
+            return None
+
+        def get_list(self, *_args, **_kwargs):
+            return None
+
+        def get_secret(self, *_args, **_kwargs):
+            return None
+
+    class _ResourceOptions:
+        def __init__(self, **_kwargs):
+            pass
+
+    def _export(*_args, **_kwargs):
+        return None
+
+    pulumi.Config = _Config  # type: ignore[attr-defined]
+    pulumi.ResourceOptions = _ResourceOptions  # type: ignore[attr-defined]
+    pulumi.export = _export  # type: ignore[attr-defined]
+    sys.modules["pulumi"] = pulumi
+
+    pulumi_docker = types.ModuleType("pulumi_docker")
+
+    class _EnvArgs:
+        def __init__(self, name: str, value: str):
+            self.name = name
+            self.value = value
+
+    pulumi_docker.ContainerEnvironmentArgs = _EnvArgs  # type: ignore[attr-defined]
+    sys.modules["pulumi_docker"] = pulumi_docker
+else:
+    import pulumi_docker  # type: ignore
+
+
+def _env_dict(envs):
+    return {env.name: env.value for env in envs}
 
 
 def test_package_has_version():
     assert valkey_pulumi.__version__ is not None
 
 
-@pytest.mark.skip(reason="This decorator should be removed when test passes.")
-def test_example():
-    assert 1 == 0  # This test is designed to fail.
+def test_build_env_uses_defaults_and_sets_data_dir():
+    envs = _build_env(Config())
+    env_map = _env_dict(envs)
+
+    assert env_map["VALKEY_DATA_DIR"] == DEFAULT_VALKEY_CONFIG["valkey_data_dir"]
+    assert env_map["VALKEY_PORT_NUMBER"] == str(DEFAULT_VALKEY_CONFIG["port"])
+    assert env_map["VALKEY_ALLOW_REMOTE_CONNECTIONS"] == "yes"
 
 
-@pytest.mark.skip(reason="This decorator should be removed when test passes.")
-@pytest.mark.parametrize(
-    "transform,layer_key,max_items,expected_len,expected_substring",
-    [
-        # Test default parameters
-        (lambda vals: f"mean={vals.mean():.2f}", None, 100, 1, "mean="),
-        # Test with layer_key
-        (lambda vals: f"mean={vals.mean():.2f}", "scaled", 100, 1, "mean=0."),
-        # Test with max_items limit (won't affect single item)
-        (lambda vals: f"max={vals.max():.2f}", None, 1, 1, "max=6.70"),
-    ],
-)
-def test_elaborate_example_adata_only_simple(
-    adata,  # this tests uses the adata object from the fixture in the conftest.py
-    transform,
-    layer_key,
-    max_items,
-    expected_len,
-    expected_substring,
-):
-    result = valkey_pulumi.pp.elaborate_example(
-        items=[adata], transform=transform, layer_key=layer_key, max_items=max_items
+def test_build_env_replication_tls_and_acl_paths_are_mapped():
+    cfg = Config(
+        replication_mode="replica",
+        primary_host="primary",
+        primary_port_number=6381,
+        tls_enabled=True,
+        tls_cert_file="/tmp/cert.pem",
+        tls_key_file="/tmp/key.pem",
+        tls_ca_file="/tmp/ca.pem",
+        acl_file="/tmp/users.acl",
     )
+    env_map = _env_dict(_build_env(cfg))
 
-    assert len(result) == expected_len
-    assert expected_substring in result[0]
+    assert env_map["VALKEY_REPLICATION_MODE"] == "replica"
+    assert env_map["VALKEY_PRIMARY_HOST"] == "primary"
+    assert env_map["VALKEY_PRIMARY_PORT_NUMBER"] == "6381"
+    assert env_map["VALKEY_TLS_ENABLED"] == "yes"
+    assert env_map["VALKEY_TLS_CERT_FILE"] == os.path.abspath("/tmp/cert.pem")
+    assert env_map["VALKEY_TLS_KEY_FILE"] == os.path.abspath("/tmp/key.pem")
+    assert env_map["VALKEY_TLS_CA_FILE"] == os.path.abspath("/tmp/ca.pem")
+    assert env_map["VALKEY_ACLFILE"] == "/opt/bitnami/valkey/mounted-etc/users.acl"
+
+
+def test_build_env_primary_password_is_propagated():
+    cfg = Config(replication_mode="replica", primary_password="secret", password="secret")
+    env_map = _env_dict(_build_env(cfg))
+
+    assert env_map["VALKEY_PRIMARY_PASSWORD"] == "secret"
+    assert env_map["VALKEY_PASSWORD"] == "secret"
+
+
+def test_build_env_allow_empty_and_extra_flags():
+    cfg = Config(allow_empty_password=True, extra_flags=["--foo", "--bar"])
+    env_map = _env_dict(_build_env(cfg))
+
+    assert env_map["ALLOW_EMPTY_PASSWORD"] == "yes"
+    assert env_map["VALKEY_EXTRA_FLAGS"] == "--foo --bar"
+
+
+def test_build_env_overrides_path_and_tls_auth_toggle():
+    cfg = Config(
+        valkey_overrides_file="/tmp/overrides.conf",
+        tls_enabled=True,
+        tls_auth_clients=False,
+    )
+    env_map = _env_dict(_build_env(cfg))
+
+    assert env_map["VALKEY_OVERRIDES_FILE"] == "/opt/bitnami/valkey/mounted-etc/overrides.conf"
+    assert env_map["VALKEY_TLS_ENABLED"] == "yes"
+    assert env_map["VALKEY_TLS_AUTH_CLIENTS"] == "no"

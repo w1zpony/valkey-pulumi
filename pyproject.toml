@@ -7,6 +7,7 @@ name = "valkey-pulumi"
 version = "0.0.1"
 description = "Valkey Pulumi + Docker deployment"
 readme = "README.md"
+keywords = [ "deployment", "docker", "pulumi", "valkey" ]
 license = { file = "LICENSE" }
 maintainers = [
   { name = "Nex", email = "hitnexup@gmail.com" },
@@ -23,14 +24,16 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
+  "pulumi>=3,<4",
+  "pulumi-docker>=4,<5",
   # for debug logging (referenced from the issue template)
   "session-info2",
 ]
-[project.urls]
-Homepage = "https://github.com/daotl/valkey-pulumi"
-Documentation = "https://valkey-pulumi.readthedocs.io/"
-Repository = "https://github.com/daotl/valkey-pulumi"
-Issues = "https://github.com/daotl/valkey-pulumi/issues"
+urls."Bitnami Docker" = "https://github.com/bitnami/containers/tree/main/bitnami/valkey"
+urls.Documentation = "https://valkey-pulumi.readthedocs.io/"
+urls.Homepage = "https://github.com/daotl/valkey-pulumi"
+urls.Issues = "https://github.com/daotl/valkey-pulumi/issues"
+urls.Repository = "https://github.com/daotl/valkey-pulumi"
 
 [dependency-groups]
 dev = [
@@ -86,6 +89,10 @@ dependency-groups = [ "dev", "test" ]
 matrix.deps.env-vars = [
   { key = "UV_PRERELEASE", value = "allow", if = [ "pre" ] },
 ]
+
+[tool.uv.sources]
+# Add any specific sources if needed
+# pulumi = { git = "https://github.com/pulumi/pulumi.git" }
 
 [tool.ruff]
 line-length = 120

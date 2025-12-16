@@ -1,0 +1,59 @@
+# Pulumi configuration for dev stack
+
+config:
+  valkey:
+    # Basic Configuration
+    image: "docker.io/bitnami/valkey:9.0"
+    database: "valkey"
+    disable_commands: ["FLUSHDB", "FLUSHALL"]
+
+    # Persistence
+    aof_enabled: true
+    # rdb_policy: ""  # Uncomment to set RDB policy
+    # rdb_policy_disabled: false
+
+    # Networking
+    # primary_host: ""  # Set for replicas
+    # primary_port_number: 6379  # Set for replicas
+    port: 6379
+    allow_remote_connections: true
+
+    # Replication
+    # replication_mode: ""  # Set to "primary" or "replica"
+    # replica_ip: ""  # Optional replication announce IP
+    # replica_port: ""  # Optional replication announce port
+    replica_count: 1  # Pulumi-specific: Number of replicas to create
+
+    # Authentication
+    password: ""  # Set with: pulumi config set --secret valkey:password "dev_password"
+    allow_empty_password: false  # Set to true only for development
+    # primary_password: ""  # Set for replica authentication
+
+    # Security
+    # acl_file: ""  # Path to ACL configuration file
+
+    # Performance
+    # io_threads_do_reads: true  # Enable multithreading for reads
+    # io_threads: 4  # Number of I/O threads
+
+    # TLS/SSL (commented out for development)
+    # tls_enabled: false
+    # tls_port_number: 6379
+    # tls_cert_file: ""
+    # tls_key_file: ""
+    # tls_ca_file: ""
+    # tls_ca_dir: ""
+    # tls_key_file_pass: ""
+    # tls_dh_params_file: ""
+    # tls_auth_clients: true
+
+    # Configuration Files
+    # valkey_config_file: ""  # Path to custom Valkey configuration for advanced settings
+                             # Use for settings not available via environment variables
+                             # Example: "./config/valkey-advanced.conf"
+
+    # Container and Deployment Settings (Pulumi-specific)
+    persistence_enabled: true
+    volume_name: ""
+    restart_policy: "unless-stopped"
+    replica_port_offset: 1  # Replica external ports = port + offset + replica_index

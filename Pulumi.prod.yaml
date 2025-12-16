@@ -1,0 +1,84 @@
+# Pulumi configuration for production stack
+# IMPORTANT: Review and modify these values before deploying to production!
+
+# Security-sensitive values should be set using Pulumi CLI with --secret flag
+# Example: pulumi config set --secret valkey:password "your_secure_production_password"
+
+config:
+  valkey:
+    # Basic Configuration
+    image: "docker.io/bitnami/valkey:9.0.2"  # Use specific version for production
+    database: "valkey"
+    disable_commands:
+      - "FLUSHDB"
+      - "FLUSHALL"
+      - "CONFIG"
+      - "DEBUG"
+      - "EVAL"
+      - "SCRIPT"
+      - "MODULE"
+      - "SAVE"
+      - "BGSAVE"
+      - "BGREWRITEAOF"
+      - "SHUTDOWN"
+      - "SWAPDB"
+
+    # Persistence
+    aof_enabled: true
+    rdb_policy: "900#1 600#5 300#10 120#50 60#1000 30#10000"  # Production RDB policy
+    rdb_policy_disabled: false
+
+    # Networking
+    # primary_host: ""  # Set for replicas
+    # primary_port_number: 6379  # Set for replicas
+    port: 6379
+    allow_remote_connections: true
+
+    # Replication
+    # replication_mode: "primary"  # Set to "primary" or "replica"
+    # replica_ip: ""  # Optional replication announce IP
+    # replica_port: ""  # Optional replication announce port
+    replica_count: 3  # Pulumi-specific: Number of replicas (use odd numbers for HA)
+
+    # Authentication
+    password: ""  # IMPORTANT: Set using: pulumi config set --secret valkey:password "strong_production_password"
+    allow_empty_password: false  # NEVER set to true in production
+    # primary_password: ""  # Set for replica authentication
+
+    # Security
+    acl_file: ""  # Path to ACL configuration file for fine-grained access control
+
+    # Performance
+    io_threads_do_reads: true  # Enable multithreading for reads
+    io_threads: 4  # Number of I/O threads
+
+    # TLS/SSL - Enable for production security
+    tls_enabled: true
+    tls_port_number: 6380  # Use different port for TLS
+    tls_cert_file: "/opt/bitnami/valkey/certs/valkey.crt"  # Path to TLS certificate file
+    tls_key_file: "/opt/bitnami/valkey/certs/valkey.key"    # Path to TLS private key file
+    tls_ca_file: "/opt/bitnami/valkey/certs/valkeyCA.crt"   # Path to TLS CA certificate file
+    # tls_ca_dir: ""  # Directory containing TLS CA certificates
+    # tls_key_file_pass: ""  # TLS key file passphrase
+    # tls_dh_params_file: ""  # TLS DH parameters file
+    tls_auth_clients: true  # Require client authentication
+
+    # Configuration Files
+    # valkey_config_file: ""  # Path to custom Valkey configuration for advanced settings
+                             # Recommended for production to set memory, buffer limits, etc.
+                             # Example: "./config/valkey-production.conf"
+
+    # Container and Deployment Settings (Pulumi-specific)
+    persistence_enabled: true  # Always true in production
+    volume_name: "prod-valkey-data"  # Explicit volume name for backup management
+    restart_policy: "unless-stopped"
+    replica_port_offset: 10  # Use larger offset to avoid port conflicts
+
+  # Additional production settings
+  # Add other service-specific configurations as needed
+  # monitoring:
+  #   enabled: true
+  #   alert_endpoints: ["prod-alerts@company.com"]
+  # backup:
+  #   enabled: true
+  #   schedule: "0 2 * * *"  # Daily at 2 AM
