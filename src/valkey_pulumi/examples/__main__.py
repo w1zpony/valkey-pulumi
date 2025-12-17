@@ -9,10 +9,10 @@ Select an example by setting VALKEY_EXAMPLE to one of:
 
 import os
 
-from .acl_example import acl_valkey
-from .replica_set import deploy_valkey_replica_set
-from .standalone import deploy_standalone_valkey
-from .tls_example import tls_valkey
+from valkey_pulumi.examples.acl_example import acl_valkey
+from valkey_pulumi.examples.replica_set import deploy_valkey_replica_set
+from valkey_pulumi.examples.standalone import deploy_standalone_valkey
+from valkey_pulumi.examples.tls_example import tls_valkey
 
 
 def main():

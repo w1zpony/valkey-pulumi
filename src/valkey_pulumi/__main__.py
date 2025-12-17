@@ -23,17 +23,17 @@ def _bool_to_yes_no(value: bool | None) -> str | None:
     return "yes" if value else "no"
 
 
-def _env_args(env_map: dict[str, str | None]) -> list[docker.ContainerEnvironmentArgs]:
+def _env_args(env_map: dict[str, str | None]) -> list[str]:
     """Convert a mapping of env var names to Pulumi container env args."""
-    args: list[docker.ContainerEnvironmentArgs] = []
+    args: list[str] = []
     for name, value in env_map.items():
         if value is None:
             continue
-        args.append(docker.ContainerEnvironmentArgs(name=name, value=value))
+        args.append(f"{name}={value}")
     return args
 
 
-def _build_env(config: Config, overrides: dict[str, str | None] | None = None) -> list[docker.ContainerEnvironmentArgs]:
+def _build_env(config: Config, overrides: dict[str, str | None] | None = None) -> list[str]:
     """Build environment variables for a container from a Config."""
     env_map: dict[str, str | None] = {
         # Authentication
@@ -90,7 +90,7 @@ def _build_env(config: Config, overrides: dict[str, str | None] | None = None) -
 
     # Extra environment variables (truly custom ones)
     for key, value in config.extra_env_vars.items():
-        env_vars.append(docker.ContainerEnvironmentArgs(name=key, value=value))
+        env_vars.append(f"{key}={value}")
 
     return env_vars
 
@@ -202,7 +202,7 @@ class ValkeyStandalone:
                 )
             )
         elif self.config.persistence_enabled:
-            self.volume = docker.Volume(volume_name, name=volume_name, opts=docker.VolumeOpts(driver="local"))
+            self.volume = docker.Volume(volume_name, name=volume_name, driver="local")
             volumes.append(
                 docker.ContainerVolumeArgs(
                     container_path=self.config.valkey_data_dir,
@@ -226,7 +226,7 @@ class ValkeyStandalone:
             image=docker.RemoteImage(f"{self.name}_image", name=self.config.image, keep_locally=False),
             ports=[docker.ContainerPortArgs(internal=self.config.port, external=self.config.port)],
             envs=_build_env(self.config),
-            restart=docker.ContainerRestartArgs(retry=0, condition=self.config.restart_policy),
+            restart=self.config.restart_policy,
             volumes=volumes,
             opts=pulumi.ResourceOptions(depends_on=depends_on if depends_on else None),
         )
@@ -234,7 +234,7 @@ class ValkeyStandalone:
         # Export connection details
         pulumi.export(f"{self.name}_host", self.container.name)
         pulumi.export(f"{self.name}_port", self.config.port)
-        pulumi.export(f"{self.name}_endpoint", f"{self.container.name}:{self.config.port}")
+        pulumi.export(f"{self.name}_endpoint", self.container.name.apply(lambda name: f"{name}:{self.config.port}"))
 
 
 class ValkeyReplicaSet:
@@ -257,12 +257,12 @@ class ValkeyReplicaSet:
         )
         self._deploy()
 
-    def _get_primary_environment(self) -> list[docker.ContainerEnvironmentArgs]:
+    def _get_primary_environment(self) -> list[str]:
         """Build environment variables for primary container."""
         overrides = {"VALKEY_REPLICATION_MODE": "primary"}
         return _build_env(self.primary_config, overrides)
 
-    def _get_replica_environment(self) -> list[docker.ContainerEnvironmentArgs]:
+    def _get_replica_environment(self) -> list[str]:
         """Build environment variables for replica containers."""
         primary_password = self.primary_config.password or self.replica_config.password
 
@@ -282,9 +282,7 @@ class ValkeyReplicaSet:
     def _deploy(self):
         """Deploy the Valkey replica set."""
         # Create shared network for communication
-        self.network = docker.Network(
-            f"{self.name}_network", name=f"{self.name}_network", opts=docker.NetworkOpts(driver="bridge")
-        )
+        self.network = docker.Network(f"{self.name}_network", name=f"{self.name}_network", driver="bridge")
 
         # Deploy primary container
         primary_volumes = _file_mounts(self.primary_config)
@@ -300,7 +298,7 @@ class ValkeyReplicaSet:
             )
         elif self.primary_config.persistence_enabled:
             volume_name = self.primary_config.volume_name or f"{self.name}_primary_data"
-            self.primary_volume = docker.Volume(volume_name, name=volume_name, opts=docker.VolumeOpts(driver="local"))
+            self.primary_volume = docker.Volume(volume_name, name=volume_name, driver="local")
             primary_depends.append(self.primary_volume)
             primary_volumes.append(
                 docker.ContainerVolumeArgs(
@@ -317,9 +315,11 @@ class ValkeyReplicaSet:
             image=docker.RemoteImage(f"{self.name}_primary_image", name=self.primary_config.image, keep_locally=False),
             ports=[docker.ContainerPortArgs(internal=self.primary_config.port, external=self.primary_config.port)],
             envs=self._get_primary_environment(),
-            restart=docker.ContainerRestartArgs(retry=0, condition=self.primary_config.restart_policy),
+            restart=self.primary_config.restart_policy,
             volumes=primary_volumes,
-            network_mode=docker.NetworkModeArgs(name=self.network.name, aliases=[f"{self.name}-primary"]),
+            networks_advanced=[
+                docker.ContainerNetworksAdvancedArgs(name=self.network.name, aliases=[f"{self.name}-primary"])
+            ],
             opts=pulumi.ResourceOptions(depends_on=primary_depends),
         )
 
@@ -342,9 +342,7 @@ class ValkeyReplicaSet:
                     )
                 )
             elif self.replica_config.persistence_enabled:
-                replica_volume = docker.Volume(
-                    f"{replica_name}_data", name=f"{replica_name}_data", opts=docker.VolumeOpts(driver="local")
-                )
+                replica_volume = docker.Volume(f"{replica_name}_data", name=f"{replica_name}_data", driver="local")
                 self.replica_volumes.append(replica_volume)
                 replica_volumes.append(
                     docker.ContainerVolumeArgs(
@@ -369,9 +367,11 @@ class ValkeyReplicaSet:
                     )
                 ],
                 envs=self._get_replica_environment(),
-                restart=docker.ContainerRestartArgs(retry=0, condition=self.replica_config.restart_policy),
+                restart=self.replica_config.restart_policy,
                 volumes=replica_volumes,
-                network_mode=docker.NetworkModeArgs(name=self.network.name, aliases=[replica_name]),
+                networks_advanced=[
+                    docker.ContainerNetworksAdvancedArgs(name=self.network.name, aliases=[replica_name])
+                ],
                 opts=pulumi.ResourceOptions(depends_on=replica_depends_on),
             )
             self.replicas.append(replica)
@@ -379,14 +379,16 @@ class ValkeyReplicaSet:
         # Export connection details
         pulumi.export(f"{self.name}_primary_host", self.primary.name)
         pulumi.export(f"{self.name}_primary_port", self.primary_config.port)
-        pulumi.export(f"{self.name}_primary_endpoint", f"{self.primary.name}:{self.primary_config.port}")
+        pulumi.export(
+            f"{self.name}_primary_endpoint", self.primary.name.apply(lambda name: f"{name}:{self.primary_config.port}")
+        )
 
         replica_endpoints = []
         for i, replica in enumerate(self.replicas):
             replica_external_port = self.replica_config.port + self.replica_port_offset + i
             pulumi.export(f"{self.name}_replica_{i}_host", replica.name)
             pulumi.export(f"{self.name}_replica_{i}_port", replica_external_port)
-            replica_endpoints.append(f"{replica.name}:{replica_external_port}")
+            replica_endpoints.append(replica.name.apply(lambda name, port=replica_external_port: f"{name}:{port}"))
 
         pulumi.export(f"{self.name}_replica_endpoints", replica_endpoints)
 
