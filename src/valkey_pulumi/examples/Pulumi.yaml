@@ -1,0 +1,7 @@
+name: valkey
+runtime:
+  name: python
+  options:
+    toolchain: uv
+    virtualenv: venv
+description: Pulumi Python deployment for Valkey using Docker backend

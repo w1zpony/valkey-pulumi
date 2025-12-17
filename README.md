@@ -299,10 +299,11 @@ pulumi config set valkey:tls_cert_file "/path/to/cert.pem"
 The project includes several ready-to-run examples demonstrating different configurations (Standalone, Replica Set, ACL, TLS).
 
 1.  **Configure Pulumi to run examples:**
-    Modify `Pulumi.yaml` to point to the examples entry point:
+    Change work directory to `src/valkey_pulumi/examples`, change `Pulumi.yaml` to point to the examples entry point:
     ```yaml
-    main: src/valkey_pulumi/examples/__main__.py
+    main: ./__main__.py # acl_example.py,replica_set.py,standalone.py,tls_example.py
     ```
+    The default value for the `main` parameter is the `__main__.py` in the current directory.
 
 2.  **Run a specific example using the `VALKEY_EXAMPLE` environment variable:**
 
